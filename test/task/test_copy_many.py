@@ -32,7 +32,7 @@ class TestCopyManyTask:
         task = CopyMany(spec, TaskContext(config=fake_config(), scratchpad=Scratchpad()))
 
         with (
-            patch('otter.tasks.copy_many.requester_pays_project') as mock_project_context,
+            patch('otter.tasks.copy_many.user_project_context') as mock_project_context,
             patch.object(
                 task,
                 '_copy_single_file',

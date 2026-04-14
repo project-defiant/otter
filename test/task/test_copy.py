@@ -36,7 +36,7 @@ class TestCopyTask:
         dst_handle.absolute = 'gs://test-bucket/release/path/dest.txt'
 
         with (
-            patch('otter.tasks.copy.requester_pays_project') as mock_project_context,
+            patch('otter.tasks.copy.user_project_context') as mock_project_context,
             patch('otter.tasks.copy.StorageHandle') as mock_storage_handle,
         ):
             mock_storage_handle.side_effect = [src_handle, dst_handle]
@@ -62,14 +62,14 @@ class TestCopyTask:
         dst_handle.absolute = 'gs://test-bucket/release/path/dest.txt'
 
         with (
-            patch('otter.tasks.copy.requester_pays_project'),
+            patch('otter.tasks.copy.user_project_context'),
             patch('otter.tasks.copy.StorageHandle') as mock_storage_handle,
         ):
             mock_storage_handle.side_effect = [src_handle, dst_handle]
             await task.run()
 
         with (
-            patch('otter.tasks.copy.requester_pays_project') as mock_project_context,
+            patch('otter.tasks.copy.user_project_context') as mock_project_context,
             patch('otter.tasks.copy.file.exists') as mock_exists,
             patch('otter.tasks.copy.file.size') as mock_size,
         ):

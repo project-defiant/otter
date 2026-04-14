@@ -9,7 +9,7 @@ from loguru import logger
 
 from otter.manifest.model import Artifact
 from otter.storage.asynchronous.handle import AsyncStorageHandle
-from otter.storage.requester_pays import requester_pays_project
+from otter.storage.requester_pays import user_project_context
 from otter.storage.synchronous.handle import StorageHandle
 from otter.task.model import Spec, Task, TaskContext
 from otter.task.task_reporter import report
@@ -35,7 +35,11 @@ class CopyManySpec(Spec):
     max_concurrency: int = 10
     """Maximum number of concurrent copy operations. Defaults to 5."""
     project_id: str | None = None
-    """The requester-pays billing project id for Google Cloud Storage operations."""
+    """Optional billing/user project identifier for storage operations.
+
+    Used by storage backends that require a project for billing or access control
+    (e.g., Google Cloud Storage requester-pays buckets).
+    """
 
 
 class CopyMany(Task):
@@ -80,7 +84,7 @@ class CopyMany(Task):
         if self.spec.source_list_file is None and self.spec.sources is None:
             raise ValueError('either sources or source_list_file must be provided')
 
-        with requester_pays_project(self.spec.project_id):
+        with user_project_context(self.spec.project_id):
             sources = self.spec.sources or []
             if isinstance(sources, str):
                 logger.info(f'resolving sources from glob {sources}')
