@@ -48,7 +48,9 @@ class Copy(Task):
             try:
                 src = StorageHandle(self.spec.source)
             except ValueError:
-                raise TaskRunError(f'source {self.spec.source} is relative, copy task is intended for extenal resources')
+                raise TaskRunError(
+                    f'source {self.spec.source} is relative, copy task is intended for external resources'
+                )
             dst = StorageHandle(self.spec.destination, config=self.context.config)
 
             src.copy_to(dst)

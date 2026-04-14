@@ -7,9 +7,9 @@ from aiohttp import ServerTimeoutError
 from gcloud.aio.storage import Storage as GCSClient
 from loguru import logger
 
-from otter.storage.requester_pays import get_requester_pays_project_id
 from otter.storage.asynchronous.model import AsyncStorage
 from otter.storage.model import Revision, StatResult
+from otter.storage.requester_pays import get_requester_pays_project_id
 from otter.util.errors import NotFoundError, PreconditionFailedError, StorageError
 
 REQUEST_TIMEOUT = 300

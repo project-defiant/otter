@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from otter.scratchpad.model import Scratchpad
 from otter.task.model import TaskContext
 from otter.tasks.copy import Copy, CopySpec
@@ -18,7 +20,8 @@ class TestCopyTask:
 
         assert spec.project_id is None
 
-    def test_run_uses_project_id_context(self) -> None:
+    @pytest.mark.asyncio
+    async def test_run_uses_project_id_context(self) -> None:
         spec = CopySpec(
             name='copy test copy',
             source='gs://source-bucket/source.txt',
@@ -38,12 +41,13 @@ class TestCopyTask:
         ):
             mock_storage_handle.side_effect = [src_handle, dst_handle]
 
-            task.run()
+            await task.run()
 
         mock_project_context.assert_called_once_with('billing-project')
         src_handle.copy_to.assert_called_once_with(dst_handle)
 
-    def test_validate_uses_project_id_context(self) -> None:
+    @pytest.mark.asyncio
+    async def test_validate_uses_project_id_context(self) -> None:
         spec = CopySpec(
             name='copy test copy',
             source='gs://source-bucket/source.txt',
@@ -52,12 +56,24 @@ class TestCopyTask:
         )
         task = Copy(spec, TaskContext(config=fake_config(), scratchpad=Scratchpad()))
 
+        src_handle = MagicMock()
+        src_handle.absolute = 'gs://source-bucket/source.txt'
+        dst_handle = MagicMock()
+        dst_handle.absolute = 'gs://test-bucket/release/path/dest.txt'
+
+        with (
+            patch('otter.tasks.copy.requester_pays_project'),
+            patch('otter.tasks.copy.StorageHandle') as mock_storage_handle,
+        ):
+            mock_storage_handle.side_effect = [src_handle, dst_handle]
+            await task.run()
+
         with (
             patch('otter.tasks.copy.requester_pays_project') as mock_project_context,
             patch('otter.tasks.copy.file.exists') as mock_exists,
             patch('otter.tasks.copy.file.size') as mock_size,
         ):
-            task.validate()
+            await task.validate()
 
         mock_project_context.assert_called_once_with('billing-project')
         mock_exists.assert_called_once()

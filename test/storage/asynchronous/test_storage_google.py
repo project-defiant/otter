@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from otter.storage.requester_pays import requester_pays_project
 from otter.storage.asynchronous.google import AsyncGoogleStorage
+from otter.storage.requester_pays import requester_pays_project
 from otter.util.errors import NotFoundError, PreconditionFailedError, StorageError
 
 
@@ -72,7 +72,14 @@ class TestGoogleStorage:
     ) -> None:
         with patch.object(storage, '_get_client') as mock_get_client:
             mock_client = AsyncMock()
-            mock_client.list_objects = AsyncMock(return_value={'items': [{'name': 'data/file1.txt'}, {'name': 'data/file2.txt'}]})
+            mock_client.list_objects = AsyncMock(
+                return_value={
+                    'items': [
+                        {'name': 'data/file1.txt'},
+                        {'name': 'data/file2.txt'},
+                    ]
+                }
+            )
             mock_get_client.return_value = mock_client
 
             result = await storage.glob('gs://bucket/data/', '*.txt')
