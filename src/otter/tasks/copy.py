@@ -5,6 +5,7 @@ from typing import Self
 from loguru import logger
 
 from otter.manifest.model import Artifact
+from otter.storage.requester_pays import requester_pays_project
 from otter.storage.synchronous.handle import StorageHandle
 from otter.task.model import Spec, Task, TaskContext
 from otter.task.task_reporter import report
@@ -19,6 +20,8 @@ class CopySpec(Spec):
     """The source URI of the file to copy. Must be absolute."""
     destination: str
     """The destination for the file, relative to the release root."""
+    project_id: str | None = None
+    """The requester-pays billing project id for Google Cloud Storage operations."""
 
 
 class Copy(Task):
@@ -41,13 +44,14 @@ class Copy(Task):
     @report
     def run(self) -> Self:
         logger.info(f'copying file from {self.spec.source} to {self.spec.destination}')
-        try:
-            src = StorageHandle(self.spec.source)
-        except ValueError:
-            raise TaskRunError(f'source {self.spec.source} is relative, copy task is intended for extenal resources')
-        dst = StorageHandle(self.spec.destination, config=self.context.config)
+        with requester_pays_project(self.spec.project_id):
+            try:
+                src = StorageHandle(self.spec.source)
+            except ValueError:
+                raise TaskRunError(f'source {self.spec.source} is relative, copy task is intended for extenal resources')
+            dst = StorageHandle(self.spec.destination, config=self.context.config)
 
-        src.copy_to(dst)
+            src.copy_to(dst)
 
         self.artifacts = [Artifact(source=src.absolute, destination=dst.absolute)]
         return self
@@ -55,15 +59,16 @@ class Copy(Task):
     @report
     def validate(self) -> Self:
         """Check that the copied file exists and has a valid size."""
-        file.exists(
-            self.spec.destination,
-            config=self.context.config,
-        )
+        with requester_pays_project(self.spec.project_id):
+            file.exists(
+                self.spec.destination,
+                config=self.context.config,
+            )
 
-        file.size(
-            self.spec.source,
-            self.spec.destination,
-            config=self.context.config,
-        )
+            file.size(
+                self.spec.source,
+                self.spec.destination,
+                config=self.context.config,
+            )
 
         return self

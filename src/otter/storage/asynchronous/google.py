@@ -4,10 +4,10 @@
 from __future__ import annotations
 
 from aiohttp import ServerTimeoutError
-from gcloud.aio.storage import Bucket
 from gcloud.aio.storage import Storage as GCSClient
 from loguru import logger
 
+from otter.storage.requester_pays import get_requester_pays_project_id
 from otter.storage.asynchronous.model import AsyncStorage
 from otter.storage.model import Revision, StatResult
 from otter.util.errors import NotFoundError, PreconditionFailedError, StorageError
@@ -25,6 +25,48 @@ class AsyncGoogleStorage(AsyncStorage):
         if self._client is None:
             self._client = GCSClient()
         return self._client
+
+    def _request_headers(self, headers: dict[str, str] | None = None) -> dict[str, str] | None:
+        user_project = get_requester_pays_project_id()
+        if not user_project:
+            return headers
+
+        merged = dict(headers or {})
+        merged['x-goog-user-project'] = user_project
+        return merged
+
+    def _request_params(self, params: dict[str, str] | None = None) -> dict[str, str] | None:
+        user_project = get_requester_pays_project_id()
+        if not user_project:
+            return params
+
+        merged = dict(params or {})
+        merged['userProject'] = user_project
+        return merged
+
+    async def _list_blob_names(self, bucket_name: str, prefix: str, match_glob: str = '') -> list[str]:
+        client = self._get_client()
+        params = self._request_params(
+            {
+                'delimiter': '',
+                'matchGlob': match_glob,
+                'pageToken': '',
+                'prefix': prefix,
+            }
+        )
+        items: list[str] = []
+        while True:
+            content = await client.list_objects(
+                bucket_name,
+                params=params,
+                headers=self._request_headers(),
+            )
+            items.extend([obj['name'] for obj in content.get('items', [])])
+            assert params is not None
+            params['pageToken'] = content.get('nextPageToken', '')
+            if not params['pageToken']:
+                break
+        return items
 
     @property
     def name(self) -> str:
@@ -50,7 +92,11 @@ class AsyncGoogleStorage(AsyncStorage):
             )
         # regular blob
         try:
-            metadata = await client.download_metadata(bucket_name, blob_name)
+            metadata = await client.download_metadata(
+                bucket_name,
+                blob_name,
+                headers=self._request_headers(),
+            )
             logger.trace(f'got metadata for blob {location}')
             return StatResult(
                 is_dir=False,
@@ -61,9 +107,8 @@ class AsyncGoogleStorage(AsyncStorage):
         # maybe a prefix if blobs exist underneath
         except Exception:
             try:
-                bucket = Bucket(client, bucket_name)
                 prefix = blob_name if blob_name.endswith('/') else f'{blob_name}/'
-                blobs = await bucket.list_blobs(prefix=prefix)
+                blobs = await self._list_blob_names(bucket_name, prefix=prefix)
                 if blobs:
                     logger.trace(f'got metadata for prefix {location}')
                     return StatResult(
@@ -78,8 +123,6 @@ class AsyncGoogleStorage(AsyncStorage):
 
     async def glob(self, location: str, pattern: str = '*') -> list[str]:
         bucket_name, prefix = self._parse_uri(location)
-        client = self._get_client()
-        bucket = Bucket(client, bucket_name)
         if prefix.endswith('/'):
             search_prefix = f'{prefix}{pattern}'
         elif prefix:
@@ -87,7 +130,7 @@ class AsyncGoogleStorage(AsyncStorage):
         full_pattern = f'gs://{bucket_name}/{search_prefix}'
 
         try:
-            blobs = await bucket.list_blobs(prefix=search_prefix, match_glob=pattern)
+            blobs = await self._list_blob_names(bucket_name, prefix=search_prefix, match_glob=pattern)
         except Exception as e:
             raise StorageError(f'error listing blobs in {location}: {e}')
 
@@ -105,10 +148,23 @@ class AsyncGoogleStorage(AsyncStorage):
 
         try:
             while True:
-                metadata = await client.download_metadata(bucket_name, blob_name)
+                metadata = await client.download_metadata(
+                    bucket_name,
+                    blob_name,
+                    headers=self._request_headers(),
+                )
                 revision = metadata.get('generation')
-                data = await client.download(bucket_name, blob_name, timeout=REQUEST_TIMEOUT)
-                new_metadata = await client.download_metadata(bucket_name, blob_name)
+                data = await client.download(
+                    bucket_name,
+                    blob_name,
+                    headers=self._request_headers(),
+                    timeout=REQUEST_TIMEOUT,
+                )
+                new_metadata = await client.download_metadata(
+                    bucket_name,
+                    blob_name,
+                    headers=self._request_headers(),
+                )
                 new_revision = new_metadata.get('generation')
                 if revision is None or revision == new_revision:
                     logger.debug(f'downloaded {location}')
@@ -150,7 +206,8 @@ class AsyncGoogleStorage(AsyncStorage):
                 bucket_name,
                 blob_name,
                 data,
-                headers=headers,
+                parameters=self._request_params(),
+                headers=self._request_headers(headers),
             )
             logger.debug(f'uploaded to {location}')
             return metadata.get('generation')
@@ -179,10 +236,21 @@ class AsyncGoogleStorage(AsyncStorage):
         client = self._get_client()
 
         try:
-            await client.copy(src_bucket, src_blob, dst_bucket, new_name=dst_blob)
+            await client.copy(
+                src_bucket,
+                src_blob,
+                dst_bucket,
+                new_name=dst_blob,
+                params=self._request_params(),
+                headers=self._request_headers(),
+            )
             logger.debug(f'copied {src} to {dst}')
             # Get generation of new blob
-            metadata = await client.download_metadata(dst_bucket, dst_blob)
+            metadata = await client.download_metadata(
+                dst_bucket,
+                dst_blob,
+                headers=self._request_headers(),
+            )
             return metadata.get('generation')
         except Exception as e:
             if 'Not Found' in str(e) or '404' in str(e):
