@@ -78,3 +78,29 @@ class TestCopyTask:
         mock_storage_context.assert_called_once_with(user_project='billing-project')
         mock_exists.assert_called_once()
         mock_size.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_run_uses_settings_context(self) -> None:
+        spec = CopySpec(
+            name='copy test copy',
+            source='gs://source-bucket/source.txt',
+            destination='dest.txt',
+            settings={'user_project': 'billing-project'},
+        )
+        task = Copy(spec, TaskContext(config=fake_config(), scratchpad=Scratchpad()))
+
+        src_handle = MagicMock()
+        src_handle.absolute = 'gs://source-bucket/source.txt'
+        dst_handle = MagicMock()
+        dst_handle.absolute = 'gs://test-bucket/release/path/dest.txt'
+
+        with (
+            patch('otter.tasks.copy.storage_context') as mock_storage_context,
+            patch('otter.tasks.copy.StorageHandle') as mock_storage_handle,
+        ):
+            mock_storage_handle.side_effect = [src_handle, dst_handle]
+
+            await task.run()
+
+        mock_storage_context.assert_called_once_with(user_project='billing-project')
+        src_handle.copy_to.assert_called_once_with(dst_handle)
