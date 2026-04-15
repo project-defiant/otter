@@ -34,12 +34,19 @@ class CopyManySpec(Spec):
     """The destination directory, relative to the release root."""
     max_concurrency: int = 10
     """Maximum number of concurrent copy operations. Defaults to 5."""
-    project_id: str | None = None
-    """Optional billing/user project identifier for storage operations.
+    settings: dict[str, any] | None = None
+    """Optional storage context settings for backend-specific configuration.
 
-    Used by storage backends that require a project for billing or access control
-    (e.g., Google Cloud Storage requester-pays buckets).
+    The allowed settings depend on the storage backend being used:
+        - For Google Cloud Storage (gs://): See :class:`otter.storage.synchronous.google.GoogleStorageSettings`
+        - For other backends: Check the backend's documentation for supported settings
+
+    Example:
+        settings={'user_project': 'my-billing-project'}  # For GCS requester-pays buckets
     """
+    # Deprecated: kept for backward compatibility
+    project_id: str | None = None
+    """Deprecated: Use 'settings' dict with 'user_project' key instead."""
 
 
 class CopyMany(Task):
@@ -84,7 +91,12 @@ class CopyMany(Task):
         if self.spec.source_list_file is None and self.spec.sources is None:
             raise ValueError('either sources or source_list_file must be provided')
 
-        with storage_context(user_project=self.spec.project_id):
+        # Backward compatibility: convert project_id to settings
+        context_settings = self.spec.settings or {}
+        if self.spec.project_id and 'user_project' not in context_settings:
+            context_settings = {**context_settings, 'user_project': self.spec.project_id}
+
+        with storage_context(**context_settings):
             sources = self.spec.sources or []
             if isinstance(sources, str):
                 logger.info(f'resolving sources from glob {sources}')

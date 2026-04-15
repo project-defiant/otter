@@ -10,6 +10,7 @@ from google.api_core.exceptions import NotFound, PreconditionFailed
 from google.cloud import storage
 from google.cloud.storage import Blob, Bucket
 from loguru import logger
+from pydantic import BaseModel, Field
 
 from otter.storage.requester_pays import get_storage_context
 from otter.storage.synchronous.model import Revision, StatResult, Storage
@@ -18,11 +19,49 @@ from otter.util.errors import NotFoundError, PreconditionFailedError, StorageErr
 REQUEST_TIMEOUT = 300
 
 
+class GoogleStorageSettings(BaseModel):
+    """Settings model for Google Cloud Storage context.
+
+    Defines the allowed context parameters that can be used with Google Cloud Storage
+    operations. These settings are passed via the storage_context() context manager.
+
+    Attributes:
+        user_project: Google Cloud project ID to use for requester-pays bucket access.
+                     When accessing requester-pays buckets, this project will be billed
+                     for the API requests and data egress costs.
+
+    Example:
+        with storage_context(user_project='my-billing-project'):
+            # Operations on requester-pays buckets will bill to 'my-billing-project'
+            handle.copy_to(destination)
+    """
+
+    user_project: str | None = Field(
+        default=None,
+        description='Project ID for requester-pays bucket billing',
+    )
+
+
 class GoogleStorage(Storage):
-    """Google Cloud Storage class using google-cloud-storage for operations."""
+    """Google Cloud Storage class using google-cloud-storage for operations.
+
+    This storage backend supports the following context settings (via storage_context):
+        - user_project: Project ID for requester-pays bucket access
+
+    See :class:`GoogleStorageSettings` for detailed documentation of available settings.
+    """
 
     def __init__(self) -> None:
         self._client: storage.Client | None = None
+
+    @classmethod
+    def get_context_settings_model(cls) -> type[BaseModel]:
+        """Get the settings model for Google Cloud Storage context validation.
+
+        :return: GoogleStorageSettings model class.
+        :rtype: type[BaseModel]
+        """
+        return GoogleStorageSettings
 
     def _get_client(self) -> storage.Client:
         if self._client is None:
