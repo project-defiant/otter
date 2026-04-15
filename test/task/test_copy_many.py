@@ -12,42 +12,14 @@ from test.mocks import fake_config
 
 
 class TestCopyManyTask:
-    def test_spec_defaults_to_no_project_id(self) -> None:
+    def test_spec_defaults_to_no_settings(self) -> None:
         spec = CopyManySpec(
             name='copy_many test copies',
             sources=['gs://source-bucket/source.txt'],
             destination='dest',
         )
 
-        assert spec.project_id is None
-
-    @pytest.mark.asyncio
-    async def test_run_uses_project_id_context(self) -> None:
-        spec = CopyManySpec(
-            name='copy_many test copies',
-            sources=['gs://source-bucket/source.txt'],
-            destination='dest',
-            project_id='billing-project',
-        )
-        task = CopyMany(spec, TaskContext(config=fake_config(), scratchpad=Scratchpad()))
-
-        with (
-            patch('otter.tasks.copy_many.storage_context') as mock_storage_context,
-            patch.object(
-                task,
-                '_copy_single_file',
-                new=AsyncMock(
-                    return_value=Artifact(
-                        source='gs://source-bucket/source.txt',
-                        destination='gs://test-bucket/release/path/dest/source.txt',
-                    )
-                ),
-            ) as mock_copy_single,
-        ):
-            await task.run()
-
-        mock_storage_context.assert_called_once_with(user_project='billing-project')
-        mock_copy_single.assert_awaited_once()
+        assert spec.settings is None
 
     @pytest.mark.asyncio
     async def test_run_uses_settings_context(self) -> None:

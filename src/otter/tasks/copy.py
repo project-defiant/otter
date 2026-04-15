@@ -24,15 +24,12 @@ class CopySpec(Spec):
     """Optional storage context settings for backend-specific configuration.
 
     The allowed settings depend on the storage backend being used:
-        - For Google Cloud Storage (gs://): See :class:`otter.storage.synchronous.google.GoogleStorageSettings`
+        - For Google Cloud Storage (gs://): See :class:`otter.storage.model.GoogleStorageSettings`
         - For other backends: Check the backend's documentation for supported settings
 
     Example:
         settings={'user_project': 'my-billing-project'}  # For GCS requester-pays buckets
     """
-    # Deprecated: kept for backward compatibility
-    project_id: str | None = None
-    """Deprecated: Use 'settings' dict with 'user_project' key instead."""
 
 
 class Copy(Task):
@@ -56,12 +53,7 @@ class Copy(Task):
     def run(self) -> Self:
         logger.info(f'copying file from {self.spec.source} to {self.spec.destination}')
 
-        # Backward compatibility: convert project_id to settings
-        context_settings = self.spec.settings or {}
-        if self.spec.project_id and 'user_project' not in context_settings:
-            context_settings = {**context_settings, 'user_project': self.spec.project_id}
-
-        with storage_context(**context_settings):
+        with storage_context(**(self.spec.settings or {})):
             try:
                 src = StorageHandle(self.spec.source)
             except ValueError:
@@ -78,12 +70,7 @@ class Copy(Task):
     @report
     def validate(self) -> Self:
         """Check that the copied file exists and has a valid size."""
-        # Backward compatibility: convert project_id to settings
-        context_settings = self.spec.settings or {}
-        if self.spec.project_id and 'user_project' not in context_settings:
-            context_settings = {**context_settings, 'user_project': self.spec.project_id}
-
-        with storage_context(**context_settings):
+        with storage_context(**(self.spec.settings or {})):
             file.exists(
                 self.spec.destination,
                 config=self.context.config,
