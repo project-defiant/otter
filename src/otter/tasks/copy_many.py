@@ -2,7 +2,7 @@
 
 import asyncio
 from pathlib import Path
-from typing import Self
+from typing import Any, Self
 
 from httpx import ReadTimeout
 from loguru import logger
@@ -34,11 +34,11 @@ class CopyManySpec(Spec):
     """The destination directory, relative to the release root."""
     max_concurrency: int = 10
     """Maximum number of concurrent copy operations. Defaults to 5."""
-    settings: dict[str, any] | None = None
+    settings: dict[str, Any] | None = None
     """Optional storage context settings for backend-specific configuration.
 
     The allowed settings depend on the storage backend being used:
-        - For Google Cloud Storage (gs://): See :class:`otter.storage.model.GoogleStorageSettings`
+        - For Google Cloud Storage (gs://): See :class:`otter.storage.settings.GoogleStorageSettings`
         - For other backends: Check the backend's documentation for supported settings
 
     Example:

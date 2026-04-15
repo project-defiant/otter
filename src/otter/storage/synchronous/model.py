@@ -4,19 +4,15 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from io import IOBase
-from typing import TYPE_CHECKING
 
-from otter.storage.model import Revision, StatResult
-
-if TYPE_CHECKING:
-    from pydantic import BaseModel
+from otter.storage.model import Revision, StatResult, StorageSettings
 
 
 class Storage(ABC):
     """Abstract base class for synchronous storage backends."""
 
     @classmethod
-    def get_context_settings_model(cls) -> type[BaseModel] | None:
+    def get_context_settings_model(cls) -> type[StorageSettings] | None:
         """Get the Pydantic model for validating storage context settings.
 
         Storage backends that support context settings should override this method
@@ -24,10 +20,10 @@ class Storage(ABC):
         are valid for this backend.
 
         :return: Pydantic model class for settings validation, or None if no validation.
-        :rtype: type[BaseModel] | None
+        :rtype: type[StorageSettings] | None
 
         Example:
-            class GoogleStorageSettings(BaseModel):
+            class GoogleStorageSettings(StorageSettings):
                 user_project: str | None = None
 
             class GoogleStorage(Storage):

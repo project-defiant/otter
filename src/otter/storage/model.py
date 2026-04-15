@@ -2,33 +2,26 @@
 
 from dataclasses import dataclass
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 Revision = float | str | None
 """Type alias for file revision identifiers."""
 
 
-class GoogleStorageSettings(BaseModel):
-    """Settings model for Google Cloud Storage context.
+class StorageSettings(BaseModel):
+    """Base class for storage settings models.
 
-    Defines the allowed context parameters that can be used with Google Cloud Storage
-    operations. These settings are passed via the storage_context() context manager.
-
-    Attributes:
-        user_project: Google Cloud project ID to use for requester-pays bucket access.
-                     When accessing requester-pays buckets, this project will be billed
-                     for the API requests and data egress costs.
+    Storage backends that support context settings should define a subclass of StorageSettings
+    to specify the allowed context parameters. These settings are used for validating the
+    context passed via the storage_context() context manager when performing storage operations.
 
     Example:
-        with storage_context(user_project='my-billing-project'):
-            # Operations on requester-pays buckets will bill to 'my-billing-project'
-            handle.copy_to(destination)
+        class GoogleStorageSettings(StorageSettings):
+            user_project: str | None = Field(
+                default=None,
+                description='Project ID for requester-pays bucket billing',
+            )
     """
-
-    user_project: str | None = Field(
-        default=None,
-        description='Project ID for requester-pays bucket billing',
-    )
 
 
 @dataclass

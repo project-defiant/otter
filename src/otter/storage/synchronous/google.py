@@ -10,9 +10,8 @@ from google.api_core.exceptions import NotFound, PreconditionFailed
 from google.cloud import storage
 from google.cloud.storage import Blob, Bucket
 from loguru import logger
-from pydantic import BaseModel
 
-from otter.storage.model import GoogleStorageSettings
+from otter.storage.settings import GoogleStorageSettings
 from otter.storage.storage_context import get_storage_context
 from otter.storage.synchronous.model import Revision, StatResult, Storage
 from otter.util.errors import NotFoundError, PreconditionFailedError, StorageError
@@ -26,14 +25,14 @@ class GoogleStorage(Storage):
     This storage backend supports the following context settings (via storage_context):
         - user_project: Project ID for requester-pays bucket access
 
-    See :class:`otter.storage.model.GoogleStorageSettings` for detailed documentation of available settings.
+    See :class:`otter.storage.settings.GoogleStorageSettings` for detailed documentation of available settings.
     """
 
     def __init__(self) -> None:
         self._client: storage.Client | None = None
 
     @classmethod
-    def get_context_settings_model(cls) -> type[BaseModel]:
+    def get_context_settings_model(cls) -> type[GoogleStorageSettings]:
         """Get the settings model for Google Cloud Storage context validation.
 
         :return: GoogleStorageSettings model class.

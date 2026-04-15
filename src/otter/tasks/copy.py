@@ -1,6 +1,6 @@
 """Copy a file."""
 
-from typing import Self
+from typing import Any, Self
 
 from loguru import logger
 
@@ -20,11 +20,11 @@ class CopySpec(Spec):
     """The source URI of the file to copy. Must be absolute."""
     destination: str
     """The destination for the file, relative to the release root."""
-    settings: dict[str, any] | None = None
+    settings: dict[str, Any] | None = None
     """Optional storage context settings for backend-specific configuration.
 
     The allowed settings depend on the storage backend being used:
-        - For Google Cloud Storage (gs://): See :class:`otter.storage.model.GoogleStorageSettings`
+        - For Google Cloud Storage (gs://): See :class:`otter.storage.settings.GoogleStorageSettings`
         - For other backends: Check the backend's documentation for supported settings
 
     Example:
