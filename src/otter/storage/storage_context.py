@@ -129,39 +129,3 @@ def storage_context(**settings: Any) -> Generator[None]:
         yield
     finally:
         _storage_context.reset(token)
-
-
-# Backward compatibility helpers
-def get_user_project() -> str | None:
-    """Get the current user/billing project identifier (backward compatible).
-
-    This function provides backward compatibility with the previous API.
-    New code should use get_storage_context() directly.
-
-    Returns:
-        User project identifier or None.
-    """
-    ctx = get_storage_context()
-    return ctx.get('user_project') if ctx else None
-
-
-@contextmanager
-def user_project_context(project_id: str | None) -> Generator[None]:
-    """Set user/billing project context (backward compatible).
-
-    This function provides backward compatibility with the previous API.
-    New code should use storage_context(user_project=...) directly.
-
-    Args:
-        project_id: Project identifier to use for billing/access control.
-
-    Example:
-        with user_project_context('my-billing-project'):
-            handle.copy_to(destination)
-    """
-    if project_id is None:
-        yield
-        return
-
-    with storage_context(user_project=project_id):
-        yield

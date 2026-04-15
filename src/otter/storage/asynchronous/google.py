@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from otter.storage.asynchronous.model import AsyncStorage
 from otter.storage.model import GoogleStorageSettings, Revision, StatResult
-from otter.storage.requester_pays import get_storage_context
+from otter.storage.storage_context import get_storage_context
 from otter.util.errors import NotFoundError, PreconditionFailedError, StorageError
 
 REQUEST_TIMEOUT = 300
@@ -62,14 +62,12 @@ class AsyncGoogleStorage(AsyncStorage):
 
     async def _list_blob_names(self, bucket_name: str, prefix: str, match_glob: str = '') -> list[str]:
         client = self._get_client()
-        params = self._request_params(
-            {
-                'delimiter': '',
-                'matchGlob': match_glob,
-                'pageToken': '',
-                'prefix': prefix,
-            }
-        )
+        params = self._request_params({
+            'delimiter': '',
+            'matchGlob': match_glob,
+            'pageToken': '',
+            'prefix': prefix,
+        })
         items: list[str] = []
         while True:
             content = await client.list_objects(

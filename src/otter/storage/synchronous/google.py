@@ -13,7 +13,7 @@ from loguru import logger
 from pydantic import BaseModel
 
 from otter.storage.model import GoogleStorageSettings
-from otter.storage.requester_pays import get_storage_context
+from otter.storage.storage_context import get_storage_context
 from otter.storage.synchronous.model import Revision, StatResult, Storage
 from otter.util.errors import NotFoundError, PreconditionFailedError, StorageError
 

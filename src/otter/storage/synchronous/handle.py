@@ -11,7 +11,7 @@ from pydantic import ValidationError
 from otter.config.model import Config
 from otter.storage.model import Revision, StatResult
 from otter.storage.registry import storage_registry
-from otter.storage.requester_pays import get_storage_context
+from otter.storage.storage_context import get_storage_context
 from otter.storage.synchronous.model import Storage
 from otter.util.errors import StorageContextSettingsError, StorageError
 
@@ -108,10 +108,8 @@ class StorageHandle:
             settings_model(**ctx._settings)
         except ValidationError as e:
             backend_name = self._storage.name
-            error_details = '; '.join([f"{err['loc'][0]}: {err['msg']}" for err in e.errors()])
-            raise StorageContextSettingsError(
-                f"Invalid storage context settings for {backend_name}: {error_details}"
-            )
+            error_details = '; '.join([f'{err["loc"][0]}: {err["msg"]}' for err in e.errors()])
+            raise StorageContextSettingsError(f'Invalid storage context settings for {backend_name}: {error_details}')
 
     @property
     def storage(self) -> Storage:

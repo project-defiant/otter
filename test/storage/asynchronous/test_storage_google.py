@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from otter.storage.asynchronous.google import AsyncGoogleStorage
-from otter.storage.requester_pays import storage_context
+from otter.storage.storage_context import storage_context
 from otter.util.errors import NotFoundError, PreconditionFailedError, StorageError
 
 

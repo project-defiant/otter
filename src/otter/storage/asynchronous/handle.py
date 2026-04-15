@@ -11,7 +11,7 @@ from otter.config.model import Config
 from otter.storage.asynchronous.model import AsyncStorage
 from otter.storage.model import Revision, StatResult
 from otter.storage.registry import async_storage_registry
-from otter.storage.requester_pays import get_storage_context
+from otter.storage.storage_context import get_storage_context
 from otter.util.errors import StorageContextSettingsError, StorageError
 
 
@@ -107,10 +107,8 @@ class AsyncStorageHandle:
             settings_model(**ctx._settings)
         except ValidationError as e:
             backend_name = self._storage.name
-            error_details = '; '.join([f"{err['loc'][0]}: {err['msg']}" for err in e.errors()])
-            raise StorageContextSettingsError(
-                f"Invalid storage context settings for {backend_name}: {error_details}"
-            )
+            error_details = '; '.join([f'{err["loc"][0]}: {err["msg"]}' for err in e.errors()])
+            raise StorageContextSettingsError(f'Invalid storage context settings for {backend_name}: {error_details}')
 
     @property
     def storage(self) -> AsyncStorage:

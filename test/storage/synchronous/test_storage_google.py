@@ -5,7 +5,7 @@ from unittest.mock import ANY, MagicMock, patch
 import pytest
 from google.api_core.exceptions import NotFound, PreconditionFailed
 
-from otter.storage.requester_pays import storage_context
+from otter.storage.storage_context import storage_context
 from otter.storage.synchronous.google import GoogleStorage
 from otter.util.errors import NotFoundError, PreconditionFailedError, StorageError
 
