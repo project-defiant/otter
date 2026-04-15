@@ -5,7 +5,7 @@ configuration to storage operations. Storage backends can define and use their
 own context parameters without modifying core APIs.
 
 Examples:
-    - Google Cloud Storage: user_project for requester-pays buckets
+    - Google Cloud Storage: billing_project for requester-pays buckets
     - AWS S3: role_arn for assumed roles (future)
     - Azure Blob: tenant_id for multi-tenant access (future)
 
@@ -28,8 +28,8 @@ class StorageContext:
     making the system extensible without tight coupling to specific providers.
 
     Example:
-        ctx = StorageContext(user_project='my-project', timeout=300)
-        project = ctx.get('user_project')  # Returns 'my-project'
+        ctx = StorageContext(billing_project='my-project', timeout=300)
+        project = ctx.get('billing_project')  # Returns 'my-project'
         timeout = ctx.get('timeout', 60)   # Returns 300
         role = ctx.get('role_arn')         # Returns None
     """
@@ -106,16 +106,16 @@ def storage_context(**settings: Any) -> Generator[None]:
 
     Args:
         **settings: Backend-specific configuration parameters. Common examples:
-            - user_project: Billing project for GCS requester-pays buckets
+            - billing_project: Billing project for GCS requester-pays buckets
             - timeout: Custom timeout for operations
             - retry_config: Custom retry configuration
 
     Example:
-        with storage_context(user_project='my-billing-project'):
+        with storage_context(billing_project='my-billing-project'):
             # Storage operations within this block can access the context
             handle.copy_to(destination)
 
-        with storage_context(user_project='project-1', timeout=300):
+        with storage_context(billing_project='project-1', timeout=300):
             # Multiple parameters can be passed
             handle.read()
     """

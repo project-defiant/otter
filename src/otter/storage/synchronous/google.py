@@ -23,7 +23,7 @@ class GoogleStorage(Storage):
     """Google Cloud Storage class using google-cloud-storage for operations.
 
     This storage backend supports the following context settings (via storage_context):
-        - user_project: Project ID for requester-pays bucket access
+        - billing_project: Project ID for requester-pays bucket access
 
     See :class:`otter.storage.settings.GoogleStorageSettings` for detailed documentation of available settings.
     """
@@ -47,8 +47,8 @@ class GoogleStorage(Storage):
 
     def _get_bucket(self, client: storage.Client, bucket_name: str) -> Bucket:
         ctx = get_storage_context()
-        if ctx and (user_project := ctx.get('user_project')):
-            return cast(Bucket, client.bucket(bucket_name, user_project=user_project))
+        if ctx and (billing_project := ctx.get('billing_project')):
+            return cast(Bucket, client.bucket(bucket_name, user_project=billing_project))
         return cast(Bucket, client.bucket(bucket_name))
 
     @property

@@ -17,7 +17,7 @@ class StorageSettings(BaseModel):
 
     Example:
         class GoogleStorageSettings(StorageSettings):
-            user_project: str | None = Field(
+            billing_project: str | None = Field(
                 default=None,
                 description='Project ID for requester-pays bucket billing',
             )

@@ -27,7 +27,7 @@ class TestCopyManyTask:
             name='copy_many test copies',
             sources=['gs://source-bucket/source.txt'],
             destination='dest',
-            settings={'user_project': 'billing-project'},
+            settings={'billing_project': 'billing-project'},
         )
         task = CopyMany(spec, TaskContext(config=fake_config(), scratchpad=Scratchpad()))
 
@@ -46,5 +46,5 @@ class TestCopyManyTask:
         ):
             await task.run()
 
-        mock_storage_context.assert_called_once_with(user_project='billing-project')
+        mock_storage_context.assert_called_once_with(billing_project='billing-project')
         mock_copy_single.assert_awaited_once()

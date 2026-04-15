@@ -28,7 +28,7 @@ class CopySpec(Spec):
         - For other backends: Check the backend's documentation for supported settings
 
     Example:
-        settings={'user_project': 'my-billing-project'}  # For GCS requester-pays buckets
+        settings={'billing_project': 'my-billing-project'}  # For GCS requester-pays buckets
     """
 
 

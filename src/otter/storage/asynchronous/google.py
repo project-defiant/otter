@@ -20,7 +20,7 @@ class AsyncGoogleStorage(AsyncStorage):
     """Google Cloud Storage class using gcloud-aio-storage for async operations.
 
     This storage backend supports the following context settings (via storage_context):
-        - user_project: Project ID for requester-pays bucket access
+        - billing_project: Project ID for requester-pays bucket access
 
     See :class:`otter.storage.settings.GoogleStorageSettings` for detailed documentation of available settings.
     """
@@ -44,20 +44,20 @@ class AsyncGoogleStorage(AsyncStorage):
 
     def _request_headers(self, headers: dict[str, str] | None = None) -> dict[str, str] | None:
         ctx = get_storage_context()
-        if not ctx or not (user_project := ctx.get('user_project')):
+        if not ctx or not (billing_project := ctx.get('billing_project')):
             return headers
 
         merged = dict(headers or {})
-        merged['x-goog-user-project'] = user_project
+        merged['x-goog-user-project'] = billing_project
         return merged
 
     def _request_params(self, params: dict[str, str] | None = None) -> dict[str, str] | None:
         ctx = get_storage_context()
-        if not ctx or not (user_project := ctx.get('user_project')):
+        if not ctx or not (billing_project := ctx.get('billing_project')):
             return params
 
         merged = dict(params or {})
-        merged['userProject'] = user_project
+        merged['userProject'] = billing_project
         return merged
 
     async def _list_blob_names(self, bucket_name: str, prefix: str, match_glob: str = '') -> list[str]:

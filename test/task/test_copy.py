@@ -26,7 +26,7 @@ class TestCopyTask:
             name='copy test copy',
             source='gs://source-bucket/source.txt',
             destination='dest.txt',
-            settings={'user_project': 'billing-project'},
+            settings={'billing_project': 'billing-project'},
         )
         task = Copy(spec, TaskContext(config=fake_config(), scratchpad=Scratchpad()))
 
@@ -43,7 +43,7 @@ class TestCopyTask:
 
             await task.run()
 
-        mock_storage_context.assert_called_once_with(user_project='billing-project')
+        mock_storage_context.assert_called_once_with(billing_project='billing-project')
         src_handle.copy_to.assert_called_once_with(dst_handle)
 
     @pytest.mark.asyncio
@@ -52,7 +52,7 @@ class TestCopyTask:
             name='copy test copy',
             source='gs://source-bucket/source.txt',
             destination='dest.txt',
-            settings={'user_project': 'billing-project'},
+            settings={'billing_project': 'billing-project'},
         )
         task = Copy(spec, TaskContext(config=fake_config(), scratchpad=Scratchpad()))
 
@@ -75,6 +75,6 @@ class TestCopyTask:
         ):
             await task.validate()
 
-        mock_storage_context.assert_called_once_with(user_project='billing-project')
+        mock_storage_context.assert_called_once_with(billing_project='billing-project')
         mock_exists.assert_called_once()
         mock_size.assert_called_once()

@@ -23,7 +23,7 @@ class AsyncStorage(ABC):
 
         Example:
             class GoogleStorageSettings(StorageSettings):
-                user_project: str | None = None
+                billing_project: str | None = None
 
             class AsyncGoogleStorage(AsyncStorage):
                 @classmethod

@@ -289,7 +289,7 @@ class TestGoogleStorage:
             with pytest.raises(NotFoundError):
                 storage.copy_within('gs://bucket/not-found.txt', 'gs://bucket/dest.txt')
 
-    def test_read_uses_user_project_context(
+    def test_read_uses_billing_project_context(
         self,
         storage: GoogleStorage,
     ) -> None:
@@ -304,7 +304,7 @@ class TestGoogleStorage:
             mock_client.bucket = MagicMock(return_value=mock_bucket)
             mock_get_client.return_value = mock_client
 
-            with storage_context(user_project='billing-project'):
+            with storage_context(billing_project='billing-project'):
                 storage.read('gs://bucket/file.txt')
 
         mock_client.bucket.assert_called_once_with('bucket', user_project='billing-project')
