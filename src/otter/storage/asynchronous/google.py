@@ -9,7 +9,7 @@ from loguru import logger
 
 from otter.storage.asynchronous.model import AsyncStorage
 from otter.storage.model import Revision, StatResult
-from otter.storage.requester_pays import get_user_project
+from otter.storage.requester_pays import get_storage_context
 from otter.util.errors import NotFoundError, PreconditionFailedError, StorageError
 
 REQUEST_TIMEOUT = 300
@@ -27,8 +27,8 @@ class AsyncGoogleStorage(AsyncStorage):
         return self._client
 
     def _request_headers(self, headers: dict[str, str] | None = None) -> dict[str, str] | None:
-        user_project = get_user_project()
-        if not user_project:
+        ctx = get_storage_context()
+        if not ctx or not (user_project := ctx.get('user_project')):
             return headers
 
         merged = dict(headers or {})
@@ -36,8 +36,8 @@ class AsyncGoogleStorage(AsyncStorage):
         return merged
 
     def _request_params(self, params: dict[str, str] | None = None) -> dict[str, str] | None:
-        user_project = get_user_project()
-        if not user_project:
+        ctx = get_storage_context()
+        if not ctx or not (user_project := ctx.get('user_project')):
             return params
 
         merged = dict(params or {})

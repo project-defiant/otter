@@ -9,7 +9,7 @@ from loguru import logger
 
 from otter.manifest.model import Artifact
 from otter.storage.asynchronous.handle import AsyncStorageHandle
-from otter.storage.requester_pays import user_project_context
+from otter.storage.requester_pays import storage_context
 from otter.storage.synchronous.handle import StorageHandle
 from otter.task.model import Spec, Task, TaskContext
 from otter.task.task_reporter import report
@@ -84,7 +84,7 @@ class CopyMany(Task):
         if self.spec.source_list_file is None and self.spec.sources is None:
             raise ValueError('either sources or source_list_file must be provided')
 
-        with user_project_context(self.spec.project_id):
+        with storage_context(user_project=self.spec.project_id):
             sources = self.spec.sources or []
             if isinstance(sources, str):
                 logger.info(f'resolving sources from glob {sources}')

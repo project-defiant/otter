@@ -32,7 +32,7 @@ class TestCopyManyTask:
         task = CopyMany(spec, TaskContext(config=fake_config(), scratchpad=Scratchpad()))
 
         with (
-            patch('otter.tasks.copy_many.user_project_context') as mock_project_context,
+            patch('otter.tasks.copy_many.storage_context') as mock_storage_context,
             patch.object(
                 task,
                 '_copy_single_file',
@@ -46,5 +46,5 @@ class TestCopyManyTask:
         ):
             await task.run()
 
-        mock_project_context.assert_called_once_with('billing-project')
+        mock_storage_context.assert_called_once_with(user_project='billing-project')
         mock_copy_single.assert_awaited_once()

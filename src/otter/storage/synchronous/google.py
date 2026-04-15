@@ -11,7 +11,7 @@ from google.cloud import storage
 from google.cloud.storage import Blob, Bucket
 from loguru import logger
 
-from otter.storage.requester_pays import get_user_project
+from otter.storage.requester_pays import get_storage_context
 from otter.storage.synchronous.model import Revision, StatResult, Storage
 from otter.util.errors import NotFoundError, PreconditionFailedError, StorageError
 
@@ -30,8 +30,8 @@ class GoogleStorage(Storage):
         return self._client
 
     def _get_bucket(self, client: storage.Client, bucket_name: str) -> Bucket:
-        user_project = get_user_project()
-        if user_project:
+        ctx = get_storage_context()
+        if ctx and (user_project := ctx.get('user_project')):
             return cast(Bucket, client.bucket(bucket_name, user_project=user_project))
         return cast(Bucket, client.bucket(bucket_name))
 

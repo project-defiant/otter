@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from otter.storage.asynchronous.google import AsyncGoogleStorage
-from otter.storage.requester_pays import user_project_context
+from otter.storage.requester_pays import storage_context
 from otter.util.errors import NotFoundError, PreconditionFailedError, StorageError
 
 
@@ -276,7 +276,7 @@ class TestGoogleStorage:
             mock_client.download = AsyncMock(return_value=b'data')
             mock_get_client.return_value = mock_client
 
-            with user_project_context('billing-project'):
+            with storage_context(user_project='billing-project'):
                 await storage.read('gs://bucket/file.txt')
 
         expected_headers = {'x-goog-user-project': 'billing-project'}
@@ -295,7 +295,7 @@ class TestGoogleStorage:
             mock_client.download_metadata = AsyncMock(return_value={'generation': '44'})
             mock_get_client.return_value = mock_client
 
-            with user_project_context('billing-project'):
+            with storage_context(user_project='billing-project'):
                 await storage.copy_within('gs://bucket/source.txt', 'gs://bucket/dest.txt')
 
         mock_client.copy.assert_called_once_with(

@@ -36,14 +36,14 @@ class TestCopyTask:
         dst_handle.absolute = 'gs://test-bucket/release/path/dest.txt'
 
         with (
-            patch('otter.tasks.copy.user_project_context') as mock_project_context,
+            patch('otter.tasks.copy.storage_context') as mock_storage_context,
             patch('otter.tasks.copy.StorageHandle') as mock_storage_handle,
         ):
             mock_storage_handle.side_effect = [src_handle, dst_handle]
 
             await task.run()
 
-        mock_project_context.assert_called_once_with('billing-project')
+        mock_storage_context.assert_called_once_with(user_project='billing-project')
         src_handle.copy_to.assert_called_once_with(dst_handle)
 
     @pytest.mark.asyncio
@@ -62,19 +62,19 @@ class TestCopyTask:
         dst_handle.absolute = 'gs://test-bucket/release/path/dest.txt'
 
         with (
-            patch('otter.tasks.copy.user_project_context'),
+            patch('otter.tasks.copy.storage_context'),
             patch('otter.tasks.copy.StorageHandle') as mock_storage_handle,
         ):
             mock_storage_handle.side_effect = [src_handle, dst_handle]
             await task.run()
 
         with (
-            patch('otter.tasks.copy.user_project_context') as mock_project_context,
+            patch('otter.tasks.copy.storage_context') as mock_storage_context,
             patch('otter.tasks.copy.file.exists') as mock_exists,
             patch('otter.tasks.copy.file.size') as mock_size,
         ):
             await task.validate()
 
-        mock_project_context.assert_called_once_with('billing-project')
+        mock_storage_context.assert_called_once_with(user_project='billing-project')
         mock_exists.assert_called_once()
         mock_size.assert_called_once()

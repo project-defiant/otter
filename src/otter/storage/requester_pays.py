@@ -1,13 +1,15 @@
-"""User project context for storage operations.
+"""Storage context for backend-specific configuration.
 
-This module provides a context manager for setting a user/billing project that
-storage backends can use for operations requiring project-based billing or access
-control. The specific use of this context is backend-dependent:
+This module provides a flexible context manager for passing backend-specific
+configuration to storage operations. Storage backends can define and use their
+own context parameters without modifying core APIs.
 
-- Google Cloud Storage: Used for requester-pays buckets
-- Other providers: Can implement similar functionality as needed
+Examples:
+    - Google Cloud Storage: user_project for requester-pays buckets
+    - AWS S3: role_arn for assumed roles (future)
+    - Azure Blob: tenant_id for multi-tenant access (future)
 
-The context variable approach allows the project to be set at the task level
+The context variable approach allows configuration to be set at the task level
 without modifying storage backend APIs.
 """
 
@@ -16,38 +18,150 @@ from __future__ import annotations
 from collections.abc import Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
+from typing import Any
 
-_user_project_id: ContextVar[str | None] = ContextVar('user_project_id', default=None)
 
+class StorageContext:
+    """Generic storage context holding backend-specific configuration.
 
-def get_user_project() -> str | None:
-    """Get the current user/billing project identifier.
+    Storage backends can query this context for the parameters they need,
+    making the system extensible without tight coupling to specific providers.
 
-    Returns the project identifier for the current context, which storage
-    backends may use for billing or access control purposes.
+    Example:
+        ctx = StorageContext(user_project='my-project', timeout=300)
+        project = ctx.get('user_project')  # Returns 'my-project'
+        timeout = ctx.get('timeout', 60)   # Returns 300
+        role = ctx.get('role_arn')         # Returns None
     """
-    return _user_project_id.get()
+
+    def __init__(self, **settings: Any) -> None:
+        """Initialize storage context with arbitrary settings.
+
+        Args:
+            **settings: Backend-specific configuration parameters.
+        """
+        self._settings = settings
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Get a configuration value by key.
+
+        Args:
+            key: Configuration parameter name.
+            default: Default value if key not found.
+
+        Returns:
+            Configuration value or default.
+        """
+        return self._settings.get(key, default)
+
+    def __getitem__(self, key: str) -> Any:
+        """Get a configuration value by key (dict-style access).
+
+        Args:
+            key: Configuration parameter name.
+
+        Returns:
+            Configuration value.
+
+        Raises:
+            KeyError: If key not found.
+        """
+        return self._settings[key]
+
+    def __contains__(self, key: str) -> bool:
+        """Check if a key exists in the context.
+
+        Args:
+            key: Configuration parameter name.
+
+        Returns:
+            True if key exists, False otherwise.
+        """
+        return key in self._settings
+
+
+_storage_context: ContextVar[StorageContext | None] = ContextVar('storage_context', default=None)
+
+
+def get_storage_context() -> StorageContext | None:
+    """Get the current storage context.
+
+    Returns the active StorageContext instance for the current execution context,
+    or None if no context is set. Storage backends should check for None and
+    handle missing configuration gracefully.
+
+    Returns:
+        Active StorageContext or None.
+    """
+    return _storage_context.get()
+
+
+@contextmanager
+def storage_context(**settings: Any) -> Generator[None]:
+    """Set storage context for operations within the block.
+
+    This context manager allows task-level configuration to be passed to
+    storage backends without modifying function signatures. Backends query
+    the context for parameters they understand.
+
+    Args:
+        **settings: Backend-specific configuration parameters. Common examples:
+            - user_project: Billing project for GCS requester-pays buckets
+            - timeout: Custom timeout for operations
+            - retry_config: Custom retry configuration
+
+    Example:
+        with storage_context(user_project='my-billing-project'):
+            # Storage operations within this block can access the context
+            handle.copy_to(destination)
+
+        with storage_context(user_project='project-1', timeout=300):
+            # Multiple parameters can be passed
+            handle.read()
+    """
+    if not settings:
+        yield
+        return
+
+    ctx = StorageContext(**settings)
+    token = _storage_context.set(ctx)
+    try:
+        yield
+    finally:
+        _storage_context.reset(token)
+
+
+# Backward compatibility helpers
+def get_user_project() -> str | None:
+    """Get the current user/billing project identifier (backward compatible).
+
+    This function provides backward compatibility with the previous API.
+    New code should use get_storage_context() directly.
+
+    Returns:
+        User project identifier or None.
+    """
+    ctx = get_storage_context()
+    return ctx.get('user_project') if ctx else None
 
 
 @contextmanager
 def user_project_context(project_id: str | None) -> Generator[None]:
-    """Set user/billing project context for storage operations.
+    """Set user/billing project context (backward compatible).
+
+    This function provides backward compatibility with the previous API.
+    New code should use storage_context(user_project=...) directly.
 
     Args:
         project_id: Project identifier to use for billing/access control.
-                   Interpretation is backend-specific.
 
     Example:
         with user_project_context('my-billing-project'):
-            # Storage operations within this block will use the project
             handle.copy_to(destination)
     """
     if project_id is None:
         yield
         return
 
-    token = _user_project_id.set(project_id)
-    try:
+    with storage_context(user_project=project_id):
         yield
-    finally:
-        _user_project_id.reset(token)
