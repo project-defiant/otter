@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from io import IOBase
+from typing import IO, Any
 
 from otter.storage.model import Revision, StatResult, StorageSettings
 
@@ -77,7 +77,7 @@ class Storage(ABC):
         self,
         location: str,
         mode: str = 'r',
-    ) -> IOBase:
+    ) -> IO[Any]:
         """Open a file-like object for the given location.
 
         :param location: The path or uri to the file.
@@ -85,7 +85,7 @@ class Storage(ABC):
         :param mode: The file mode, e.g. Defaults to 'r' for reading.
         :type mode: str
         :return: A file-like object.
-        :rtype: IOBase
+        :rtype: IO[Any]
         :raises NotFoundError: If the file does not exist (in read mode).
         """
 
